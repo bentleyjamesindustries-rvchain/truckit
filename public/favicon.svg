@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Truckit">
+  <rect width="32" height="32" rx="8" fill="#14532D"/>
+  <rect x="3" y="11" width="17" height="11" rx="2" fill="#F6F1E8"/>
+  <path d="M20 15h7a2 2 0 0 1 2 2v5H20z" fill="#F6F1E8"/>
+  <rect x="6" y="13.5" width="8" height="5" rx="1" fill="#E11D48"/>
+  <circle cx="9" cy="24" r="3" fill="#0F1C14"/>
+  <circle cx="23" cy="24" r="3" fill="#0F1C14"/>
+</svg>
