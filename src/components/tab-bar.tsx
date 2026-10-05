@@ -7,7 +7,7 @@ type Tab = { to: string; label: string; icon: typeof List; match: string[] };
 const CONSUMER: Tab[] = [
   { to: "/list", label: "List", icon: List, match: ["/list"] },
   { to: "/map", label: "Map", icon: Map, match: ["/map"] },
-  { to: "/meetups", label: "Meetups", icon: Users, match: ["/meetups"] },
+  { to: "/meetups", label: "Meetups", icon: Users, match: ["/meetups", "/lots"] },
   { to: "/account", label: "Account", icon: UserRound, match: ["/account"] },
 ];
 

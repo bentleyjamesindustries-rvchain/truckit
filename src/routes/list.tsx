@@ -1,14 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/app-shell";
 import { AreaBar } from "@/components/area-bar";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
+import { LotCard } from "@/components/lot-card";
 import { PageHeader } from "@/components/page-header";
 import { TruckRow } from "@/components/truck-row";
 import { Button } from "@/components/ui/button";
 import { useAreaStore } from "@/lib/area-store";
-import { listTrucks } from "@/lib/server/catalog";
+import { listMarkets, listTrucks } from "@/lib/server/catalog";
 
 export const Route = createFileRoute("/list")({ component: ListPage });
 
@@ -29,8 +30,16 @@ function ListPage() {
       }),
     refetchInterval: 20_000,
   });
+  const lots = useQuery({
+    queryKey: ["markets", area.lat, area.lng, area.radiusMiles],
+    queryFn: () =>
+      listMarkets({
+        data: { lat: area.lat, lng: area.lng, radiusMiles: area.radiusMiles },
+      }),
+  });
 
   const items = data?.items ?? [];
+  const nearbyLots = lots.data?.items ?? [];
 
   return (
     <AppShell mode="consumer">
@@ -55,21 +64,36 @@ function ListPage() {
             }
           />
         ) : items.length === 0 ? (
-          <EmptyState
-            title="No trucks here yet"
-            body={
-              area.radiusMiles < 20
-                ? "This lot is quiet. Widen the radius or try Downtown, Office park, or Dinner lot."
-                : "Nobody’s published a stop in this area. Check back at lunch."
-            }
-            action={
-              area.radiusMiles < 20 ? (
-                <Button variant="outline" onClick={() => setRadius(Math.min(25, area.radiusMiles + 7))}>
-                  Widen search
-                </Button>
-              ) : null
-            }
-          />
+          <>
+            <EmptyState
+              kicker={area.label}
+              title="No trucks here yet"
+              body={`Nobody's checked in or scheduled in ${area.label} right now.`}
+              action={
+                area.radiusMiles < 20 ? (
+                  <Button variant="outline" onClick={() => setRadius(Math.min(25, area.radiusMiles + 8))}>
+                    Widen search
+                  </Button>
+                ) : (
+                  <Link to="/meetups" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+                    See the lots
+                  </Link>
+                )
+              }
+            />
+            {nearbyLots.length > 0 ? (
+              <div className="pb-8">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted">Confirmed lots</p>
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {nearbyLots.slice(0, 4).map((lot) => (
+                    <li key={lot.id}>
+                      <LotCard lot={lot} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </>
         ) : (
           <ul className="list-stagger grid gap-3 sm:grid-cols-2">
             {items.map((t) => (

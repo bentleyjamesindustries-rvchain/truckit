@@ -6,19 +6,19 @@ import { Button } from "@/components/ui/button";
 import { toLocalInput } from "@/components/stop-form";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { PLACES } from "@/lib/geo";
+import { PLACE_OPTS } from "@/lib/geo";
 import { createMeetup } from "@/lib/server/operator";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/op/meetups/new")({ component: NewMeetup });
 
-const PLACE_OPTS = [PLACES.downtown, PLACES.officePark, PLACES.dinnerLot, PLACES.harbor];
+const DEFAULT_PLACE = PLACE_OPTS.find((p) => p.name.includes("Regional")) ?? PLACE_OPTS[0]!;
 
 function NewMeetup() {
   const { user, isPending } = useCurrentUserState();
   const navigate = useNavigate();
   const [name, setName] = useState("Dinner lot meetup");
-  const [place, setPlace] = useState(PLACES.dinnerLot);
+  const [place, setPlace] = useState(DEFAULT_PLACE);
   const [start, setStart] = useState(toLocalInput(new Date(Date.now() + 2 * 3600 * 1000)));
   const [end, setEnd] = useState(toLocalInput(new Date(Date.now() + 5 * 3600 * 1000)));
   const [description, setDescription] = useState("");

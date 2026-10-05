@@ -104,6 +104,8 @@ export type Truck = {
   tiktokUrl: string | null;
   websiteUrl: string | null;
   timezone: string;
+  isDemo: boolean;
+  foundingTruck: boolean;
 };
 
 export type TruckListItem = {
@@ -124,6 +126,7 @@ export type TruckListItem = {
   statusKind: "here" | "delayed" | "window" | "upcoming" | "none";
   statusLabel: string;
   nextStop: Stop | null;
+  foundingTruck: boolean;
 };
 
 export type MeetupListItem = {
@@ -146,12 +149,34 @@ export type MeetupListItem = {
   distanceMiles: number | null;
 };
 
+export type MarketListItem = {
+  id: string;
+  name: string;
+  placeName: string;
+  address: string;
+  lat: number;
+  lng: number;
+  cityId: string;
+  cityName: string;
+  cadence: string;
+  season: string | null;
+  notes: string | null;
+  coverTone: string;
+  windowKind: "lunch" | "dinner" | "mixed";
+  distanceMiles: number | null;
+  liveCount: number;
+};
+
 export type Area = {
   query: string;
   label: string;
   lat: number;
   lng: number;
   radiusMiles: number;
+  stateCode: string;
+  countyId: string;
+  cityId: string;
+  countyName?: string;
 };
 
 export type CatalogFilters = {

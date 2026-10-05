@@ -36,6 +36,9 @@ export function TruckRow({
           ) : null}
         </div>
         <p className="mt-0.5 text-sm text-muted">{CUISINE_LABEL[truck.primaryCuisine]}</p>
+        {truck.foundingTruck ? (
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">Founding Truck</p>
+        ) : null}
         <StatusPill kind={truck.statusKind} className="mt-1.5">
           {truck.statusLabel}
         </StatusPill>

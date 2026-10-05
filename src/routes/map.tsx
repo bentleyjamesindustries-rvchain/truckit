@@ -56,6 +56,13 @@ function MapPage() {
                 </StatusPill>
               </span>
             </button>
+          ) : items.length === 0 ? (
+            <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-[var(--radius-xl)] bg-surface/95 p-4 text-center shadow-[var(--shadow-float)] ring-1 ring-border lg:max-w-md">
+              <p className="font-semibold tracking-tight">No trucks here yet</p>
+              <p className="mt-1 text-sm text-muted">
+                Nobody's checked in or scheduled in {area.label} right now.
+              </p>
+            </div>
           ) : null}
         </div>
       </div>

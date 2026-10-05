@@ -4,7 +4,7 @@ import { getSql } from "@/lib/db";
 import { haversineMeters } from "@/lib/geo";
 import type { Cuisine, DietaryTag, Truck, WindowKind } from "@/lib/types";
 import { mapStop, mapTruck } from "./catalog";
-import { ensureDemoCatalog } from "./seed";
+import { ensureCatalog } from "./seed";
 
 async function ensureProfile(
   sql: Awaited<ReturnType<typeof getSql>>,
@@ -22,7 +22,7 @@ export const getMyAccount = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
-    await ensureDemoCatalog(sql);
+    await ensureCatalog(sql);
     await ensureProfile(sql, context.userId);
     const profiles = await sql<{
       user_id: string;
@@ -138,14 +138,14 @@ export const upsertMyTruck = createServerFn({ method: "POST" })
     await sql`
       insert into trucks (
         id, owner_user_id, name, slug, status, primary_cuisine, secondary_cuisines,
-        bio, service_city, cover_tone, dietary_tags, price_band, typical_windows,
-        instagram_url, website_url, public_phone, phone_public, service_lat, service_lng
+        bio, service_city, service_region, cover_tone, dietary_tags, price_band, typical_windows,
+        instagram_url, website_url, public_phone, phone_public, service_lat, service_lng, is_demo
       ) values (
         ${id}, ${context.userId}, ${name}, ${slug}, ${data.status ?? "draft"},
         ${data.primaryCuisine}, ${secondary}::jsonb, ${data.bio ?? null}, ${data.serviceCity},
-        ${data.coverTone ?? "ember"}, ${tags}::jsonb, ${data.priceBand ?? null}, ${windows}::jsonb,
+        'NY', ${data.coverTone ?? "ember"}, ${tags}::jsonb, ${data.priceBand ?? null}, ${windows}::jsonb,
         ${data.instagramUrl ?? null}, ${data.websiteUrl ?? null}, ${data.publicPhone ?? null},
-        ${data.phonePublic ?? false}, ${data.serviceLat ?? null}, ${data.serviceLng ?? null}
+        ${data.phonePublic ?? false}, ${data.serviceLat ?? null}, ${data.serviceLng ?? null}, false
       )
     `;
     await sql`update profiles set role = 'operator', updated_at = now() where user_id = ${context.userId}`;
@@ -156,7 +156,7 @@ export const getMyTruckToday = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
-    await ensureDemoCatalog(sql);
+    await ensureCatalog(sql);
     const trucks = await sql<Parameters<typeof mapTruck>[0]>`
       select * from trucks where owner_user_id = ${context.userId} limit 1
     `;
@@ -301,6 +301,16 @@ export const checkInHere = createServerFn({ method: "POST" })
         delay_minutes = null,
         updated_at = now()
       where id = ${stop.id}
+    `;
+    await sql`
+      update trucks
+      set founding_truck = true, updated_at = now()
+      where id = ${stop.truck_id}
+        and is_demo = false
+        and founding_truck = false
+        and (
+          select count(*)::int from trucks where founding_truck = true and is_demo = false
+        ) < 50
     `;
     return { ok: true as const, warnMeters };
   });

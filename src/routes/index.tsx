@@ -1,13 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Radio, UtensilsCrossed } from "lucide-react";
+import { LotCard } from "@/components/lot-card";
 import { Wordmark } from "@/components/logo";
-import { TruckRow } from "@/components/truck-row";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { SignInGate } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { useAreaStore } from "@/lib/area-store";
-import { listTrucks } from "@/lib/server/catalog";
+import { listMarkets } from "@/lib/server/catalog";
 import { getMyAccount } from "@/lib/server/operator";
 import { cn } from "@/lib/utils";
 
@@ -19,14 +19,13 @@ function Splash() {
   const area = useAreaStore((s) => s.area);
   const { user, isPending } = useCurrentUserState();
   const featured = useQuery({
-    queryKey: ["landing-trucks", area.lat, area.lng],
+    queryKey: ["landing-lots", area.lat, area.lng],
     queryFn: () =>
-      listTrucks({
+      listMarkets({
         data: {
           lat: area.lat,
           lng: area.lng,
-          radiusMiles: area.radiusMiles,
-          filters: { openNow: false, lunch: false, dinner: false, late: false, cuisines: [] },
+          radiusMiles: Math.max(area.radiusMiles, 16),
         },
       }),
   });
@@ -46,7 +45,7 @@ function Splash() {
     }
   }
 
-  const trucks = featured.data?.items ?? [];
+  const lots = featured.data?.items ?? [];
 
   return (
     <div className="min-h-dvh bg-bg">
@@ -58,7 +57,7 @@ function Splash() {
               How it works
             </a>
             <a href="#lots" className="hover:text-fg">
-              On the lot
+              Syracuse lots
             </a>
             <a href="#operators" className="hover:text-fg">
               Operators
@@ -93,12 +92,12 @@ function Splash() {
 
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-5 pb-16 pt-8 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:pb-24 lg:pt-16">
         <div className="hero-stagger">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Live lots</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Syracuse · soft launch</p>
           <h1 className="mt-4 font-display text-5xl font-medium italic leading-[1.05] tracking-[-0.035em] text-primary lg:text-7xl">
             Chase the smoke.
           </h1>
-          <p className="mt-5 max-w-[34ch] text-base leading-relaxed text-muted lg:text-lg">
-            Find the truck that’s open now. Operators check in live — lunch, dinner, no ghost pins.
+          <p className="mt-5 max-w-[36ch] text-base leading-relaxed text-muted lg:text-lg">
+            Find who’s actually open for lunch and dinner. Operators tap We’re here. No ghost pins. No fake trucks.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link to="/list" onClick={() => mark()} className={cn(buttonVariants({ size: "lg" }), "sm:min-w-44")}>
@@ -108,7 +107,7 @@ function Splash() {
               I run a truck
             </Button>
           </div>
-          <p className="mt-5 text-sm text-muted">Live check-ins · Lunch and dinner lots · Operator meetups</p>
+          <p className="mt-5 text-sm text-muted">Onondaga County · List first · Live check-ins</p>
         </div>
         <figure className="overflow-hidden rounded-[2rem] bg-wash shadow-[var(--shadow-float)] ring-1 ring-border">
           <img
@@ -123,9 +122,9 @@ function Splash() {
 
       <section className="border-y border-border bg-surface">
         <div className="mx-auto grid max-w-6xl gap-8 px-5 py-10 sm:grid-cols-3 lg:px-8 lg:py-12">
-          <Stat icon={Radio} label="Live check-ins" body="We're here hits the list in about 20 seconds." />
-          <Stat icon={UtensilsCrossed} label="Lunch and dinner" body="Office parks, downtown lots, riverfront after dusk." />
-          <Stat icon={MapPin} label="Honest empty cities" body="If nobody’s posted a stop, we say so." />
+          <Stat icon={Radio} label="We're here" body="A live check-in hits the Syracuse list in about 20 seconds." />
+          <Stat icon={UtensilsCrossed} label="Lunch and dinner" body="Open now and Lunch on first paint. Dinner lives under More." />
+          <Stat icon={MapPin} label="Honest empty" body="If nobody’s checked in, we say so. Confirmed lots still show." />
         </div>
       </section>
 
@@ -135,20 +134,23 @@ function Splash() {
           Follow the smoke. Eat.
         </h2>
         <ol className="mt-10 grid gap-4 md:grid-cols-3">
-          <Step n="01" title="Pick an area" body="Westbrook, downtown, the office park, or a dinner lot. Widen search if it’s quiet." />
-          <Step n="02" title="Filter the window" body="Open now, Lunch, or Dinner. Status sits where the witty line used to be." />
-          <Step n="03" title="Hit the pin" body="Map preview, truck page, meetup lot. No ordering, no fake counts." />
+          <Step n="01" title="Pick Syracuse" body="State, county, city. Default is NY → Onondaga → Syracuse. Clay is a tap away." />
+          <Step n="02" title="Open now or Lunch" body="Status sits first. Dinner, cuisine, and radius wait under More." />
+          <Step n="03" title="Hit the lot" body="Great Northern, Regional Market, Everson. No ordering. No fake counts." />
         </ol>
       </section>
 
       <section id="lots" className="mx-auto max-w-6xl px-5 pb-16 lg:px-8 lg:pb-24">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">On the lot</p>
-            <h2 className="mt-3 font-display text-3xl font-medium tracking-tight lg:text-4xl">Westbrook right now</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Onondaga lots</p>
+            <h2 className="mt-3 font-display text-3xl font-medium tracking-tight lg:text-4xl">The clock is real.</h2>
+            <p className="mt-2 max-w-[42ch] text-sm text-muted">
+              Confirmed gatherings — not invented trucks. When an operator taps We’re here, the row goes green.
+            </p>
           </div>
-          <Link to="/list" onClick={() => mark()} className="hidden text-sm font-semibold text-primary underline-offset-4 hover:underline sm:block">
-            See all
+          <Link to="/meetups" onClick={() => mark()} className="hidden text-sm font-semibold text-primary underline-offset-4 hover:underline sm:block">
+            All lots
           </Link>
         </div>
         {featured.isPending ? (
@@ -157,13 +159,13 @@ function Splash() {
               <div key={i} className="aspect-[4/3] animate-pulse rounded-[var(--radius-xl)] bg-wash" />
             ))}
           </div>
-        ) : trucks.length === 0 ? (
-          <p className="mt-8 text-sm text-muted">No trucks here yet. Check back at lunch.</p>
+        ) : lots.length === 0 ? (
+          <p className="mt-8 text-sm text-muted">No trucks here yet. Nobody's checked in or scheduled in Syracuse right now.</p>
         ) : (
           <ul className="list-stagger mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {trucks.slice(0, 6).map((t) => (
-              <li key={t.id}>
-                <TruckRow truck={t} variant="tile" />
+            {lots.slice(0, 6).map((lot) => (
+              <li key={lot.id}>
+                <LotCard lot={lot} />
               </li>
             ))}
           </ul>
@@ -174,16 +176,14 @@ function Splash() {
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 py-16 lg:grid-cols-2 lg:px-8 lg:py-24">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-fg/70">Operators</p>
-            <h2 className="mt-3 font-display text-4xl font-medium tracking-tight lg:text-5xl">Post a stop. Tap We’re here.</h2>
+            <h2 className="mt-3 font-display text-4xl font-medium tracking-tight lg:text-5xl">Parked? Tap We’re here.</h2>
             <p className="mt-4 max-w-[40ch] text-primary-fg/80">
-              One truck per account. Lunch and dinner windows. Running late or closed today — hungry people see it on the list.
+              Parked? Open Truckit → tap We're here. Diners see you now.
             </p>
-            <Button
-              variant="accent"
-              size="lg"
-              className="mt-8"
-              onClick={() => void runTruck()}
-            >
+            <p className="mt-3 max-w-[40ch] text-sm text-primary-fg/70">
+              First 50 Syracuse operators with a real check-in get a Founding Truck badge. Display only — never a ranking boost.
+            </p>
+            <Button variant="accent" size="lg" className="mt-8" onClick={() => void runTruck()}>
               I run a truck
             </Button>
           </div>
@@ -202,7 +202,7 @@ function Splash() {
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-10 sm:flex-row sm:items-center sm:justify-between lg:px-8">
           <Wordmark markClassName="size-8" />
-          <p className="text-sm text-muted">Find the truck. Run the truck. No payments in this version.</p>
+          <p className="text-sm text-muted">Find open trucks at this lot. No payments in this version.</p>
         </div>
       </footer>
     </div>

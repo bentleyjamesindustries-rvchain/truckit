@@ -26,11 +26,9 @@ export function stopWindow(stop: { startsAt: string }, timeZone: string): Window
   return windowOfMinutes(minutesOfDay(new Date(stop.startsAt), timeZone));
 }
 
-export function isOpenNow(stop: Stop, now = new Date()): boolean {
-  if (stop.status === "here" || stop.status === "delayed") return true;
-  if (stop.status !== "scheduled") return false;
-  const t = now.getTime();
-  return t >= new Date(stop.startsAt).getTime() && t <= new Date(stop.endsAt).getTime();
+/** Open now = live check-in only. Scheduled-in-window is not Open now. */
+export function isOpenNow(stop: Stop): boolean {
+  return stop.status === "here" || stop.status === "delayed";
 }
 
 export function formatTime(iso: string, timeZone = DEFAULT_TZ): string {
@@ -83,9 +81,6 @@ export function statusLabel(stop: Stop | null, timeZone = DEFAULT_TZ): {
     const delay = stop.delayMinutes ? ` · ${stop.delayMinutes} min late` : "";
     return { kind: "delayed", text: `Open now${delay} · ${stop.placeName}`, open: true };
   }
-  if (isOpenNow(stop)) {
-    return { kind: "window", text: `Open now · ${stop.placeName}`, open: true };
-  }
   return {
     kind: "upcoming",
     text: `Next at ${formatTime(stop.startsAt, timeZone)} · ${stop.placeName}`,
@@ -101,10 +96,6 @@ export function pickNextStop(stops: Stop[], now = new Date()): Stop | null {
   if (active.length === 0) return null;
   const live = active.find((s) => s.status === "here" || s.status === "delayed");
   if (live) return live;
-  const inWindow = active
-    .filter((s) => s.status === "scheduled" && t >= new Date(s.startsAt).getTime() && t <= new Date(s.endsAt).getTime())
-    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
-  if (inWindow[0]) return inWindow[0];
   const upcoming = active
     .filter((s) => new Date(s.endsAt).getTime() >= t)
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());

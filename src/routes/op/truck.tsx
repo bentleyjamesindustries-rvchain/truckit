@@ -22,7 +22,7 @@ function TruckProfile() {
   const truck = data?.truck;
   const [name, setName] = useState("");
   const [cuisine, setCuisine] = useState<Cuisine>("bbq");
-  const [city, setCity] = useState("Westbrook");
+  const [city, setCity] = useState("Syracuse");
   const [bio, setBio] = useState("");
   const [instagram, setInstagram] = useState("");
   const [website, setWebsite] = useState("");

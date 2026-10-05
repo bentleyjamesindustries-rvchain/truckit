@@ -6,6 +6,7 @@ import type {
   CatalogFilters,
   Cuisine,
   DietaryTag,
+  MarketListItem,
   MeetupListItem,
   Stop,
   StopStatus,
@@ -13,7 +14,7 @@ import type {
   TruckListItem,
   WindowKind,
 } from "@/lib/types";
-import { ensureDemoCatalog } from "./seed";
+import { ensureCatalog } from "./seed";
 
 type TruckRow = {
   id: string;
@@ -38,6 +39,8 @@ type TruckRow = {
   tiktok_url: string | null;
   website_url: string | null;
   timezone: string;
+  is_demo?: boolean;
+  founding_truck?: boolean;
 };
 
 type StopRow = {
@@ -59,6 +62,22 @@ type StopRow = {
   live_checked_in_at: string | null;
   live_lat: number | null;
   live_lng: number | null;
+};
+
+type MarketRow = {
+  id: string;
+  name: string;
+  place_name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  city_id: string;
+  city_name: string;
+  cadence: string;
+  season: string | null;
+  notes: string | null;
+  cover_tone: string;
+  window_kind: "lunch" | "dinner" | "mixed";
 };
 
 function parseJson<T>(value: T | string | null | undefined, fallback: T): T {
@@ -97,6 +116,8 @@ export function mapTruck(row: TruckRow): Truck {
     tiktokUrl: row.tiktok_url,
     websiteUrl: row.website_url,
     timezone: row.timezone,
+    isDemo: Boolean(row.is_demo),
+    foundingTruck: Boolean(row.founding_truck),
   };
 }
 
@@ -168,14 +189,21 @@ export const listTrucks = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const sql = await getSql();
-    await ensureDemoCatalog(sql);
-    const trucks = (await sql<TruckRow>`select * from trucks where status = 'live'`).map(mapTruck);
+    await ensureCatalog(sql);
+    const trucks = (
+      await sql<TruckRow>`
+        select * from trucks
+        where status = 'live' and is_demo = false
+      `
+    ).map(mapTruck);
     const stops = (
       await sql<StopRow>`
-        select * from stops
-        where status in ('scheduled', 'here', 'delayed')
-          and ends_at > now() - interval '1 hour'
-        order by starts_at asc
+        select s.* from stops s
+        join trucks t on t.id = s.truck_id
+        where t.is_demo = false
+          and s.status in ('scheduled', 'here', 'delayed')
+          and s.ends_at > now() - interval '1 hour'
+        order by s.starts_at asc
       `
     ).map(mapStop);
 
@@ -228,20 +256,23 @@ export const listTrucks = createServerFn({ method: "POST" })
         statusKind: label.kind,
         statusLabel: label.text,
         nextStop: next,
+        foundingTruck: truck.foundingTruck,
       });
     }
     items.sort(sortItems);
-    return { items, totalLive: trucks.length };
+    const openNowCount = items.filter((i) => i.isOpenNow).length;
+    return { items, totalLive: trucks.length, openNowCount };
   });
 
 export const getTruck = createServerFn({ method: "POST" })
   .validator((input: { id: string }) => input)
   .handler(async ({ data }) => {
     const sql = await getSql();
-    await ensureDemoCatalog(sql);
+    await ensureCatalog(sql);
     const rows = await sql<TruckRow>`select * from trucks where id = ${data.id} limit 1`;
     const row = rows[0];
     if (!row) return null;
+    if (row.is_demo) return null;
     if (row.status !== "live") {
       const { getSessionUser } = await import("@/lib/auth/verify.server");
       const user = await getSessionUser();
@@ -261,7 +292,7 @@ export const listMeetups = createServerFn({ method: "POST" })
   .validator((input: { lat: number; lng: number; radiusMiles: number }) => input)
   .handler(async ({ data }) => {
     const sql = await getSql();
-    await ensureDemoCatalog(sql);
+    await ensureCatalog(sql);
     const rows = await sql<{
       id: string;
       name: string;
@@ -285,6 +316,7 @@ export const listMeetups = createServerFn({ method: "POST" })
       from meetups m
       join trucks t on t.id = m.host_truck_id
       where m.status in ('scheduled', 'live')
+        and t.is_demo = false
       order by m.starts_at asc
     `;
     const origin = { lat: data.lat, lng: data.lng };
@@ -320,7 +352,7 @@ export const getMeetup = createServerFn({ method: "POST" })
   .validator((input: { id: string }) => input)
   .handler(async ({ data }) => {
     const sql = await getSql();
-    await ensureDemoCatalog(sql);
+    await ensureCatalog(sql);
     const rows = await sql<{
       id: string;
       host_truck_id: string;
@@ -404,4 +436,121 @@ export const getMeetup = createServerFn({ method: "POST" })
         stopStatus: row.stop_status,
       })),
     };
+  });
+
+function mapMarket(row: MarketRow, origin: { lat: number; lng: number }, liveCount = 0): MarketListItem {
+  const lat = Number(row.lat);
+  const lng = Number(row.lng);
+  return {
+    id: row.id,
+    name: row.name,
+    placeName: row.place_name,
+    address: row.address,
+    lat,
+    lng,
+    cityId: row.city_id,
+    cityName: row.city_name,
+    cadence: row.cadence,
+    season: row.season,
+    notes: row.notes,
+    coverTone: row.cover_tone,
+    windowKind: row.window_kind,
+    distanceMiles: haversineMiles(origin, { lat, lng }),
+    liveCount,
+  };
+}
+
+export const listMarkets = createServerFn({ method: "POST" })
+  .validator((input: { lat: number; lng: number; radiusMiles: number }) => input)
+  .handler(async ({ data }) => {
+    const sql = await getSql();
+    await ensureCatalog(sql);
+    const rows = await sql<MarketRow>`
+      select * from markets where status = 'confirmed' order by name asc
+    `;
+    const liveStops = await sql<{ lat: number; lng: number }>`
+      select coalesce(s.live_lat, s.lat) as lat, coalesce(s.live_lng, s.lng) as lng
+      from stops s
+      join trucks t on t.id = s.truck_id
+      where s.status in ('here', 'delayed')
+        and t.status = 'live'
+        and t.is_demo = false
+    `;
+    const origin = { lat: data.lat, lng: data.lng };
+    const items = rows
+      .map((row) => {
+        const lat = Number(row.lat);
+        const lng = Number(row.lng);
+        const liveCount = liveStops.filter(
+          (s) => haversineMiles({ lat, lng }, { lat: Number(s.lat), lng: Number(s.lng) }) <= 0.4,
+        ).length;
+        return mapMarket(row, origin, liveCount);
+      })
+      .filter((m) => m.distanceMiles == null || m.distanceMiles <= data.radiusMiles)
+      .sort((a, b) => (a.distanceMiles ?? 99) - (b.distanceMiles ?? 99));
+    return { items };
+  });
+
+export const getMarket = createServerFn({ method: "POST" })
+  .validator((input: { id: string }) => input)
+  .handler(async ({ data }) => {
+    const sql = await getSql();
+    await ensureCatalog(sql);
+    const rows = await sql<MarketRow>`select * from markets where id = ${data.id} limit 1`;
+    const row = rows[0];
+    if (!row) return null;
+    const market = mapMarket(row, { lat: Number(row.lat), lng: Number(row.lng) });
+    const trucks = (
+      await sql<TruckRow>`
+        select * from trucks where status = 'live' and is_demo = false
+      `
+    ).map(mapTruck);
+    const stops = (
+      await sql<StopRow>`
+        select s.* from stops s
+        join trucks t on t.id = s.truck_id
+        where t.is_demo = false
+          and s.status in ('scheduled', 'here', 'delayed')
+          and s.ends_at > now() - interval '1 hour'
+      `
+    ).map(mapStop);
+    const origin = { lat: market.lat, lng: market.lng };
+    const atLot: TruckListItem[] = [];
+    const byTruck = new Map<string, Stop[]>();
+    for (const s of stops) {
+      const list = byTruck.get(s.truckId) ?? [];
+      list.push(s);
+      byTruck.set(s.truckId, list);
+    }
+    for (const truck of trucks) {
+      const truckStops = byTruck.get(truck.id) ?? [];
+      const next = pickNextStop(truckStops);
+      const live = truckStops.find((s) => s.status === "here" || s.status === "delayed") ?? next;
+      if (!live) continue;
+      const pin = { lat: live.liveLat ?? live.lat, lng: live.liveLng ?? live.lng };
+      if (haversineMiles(origin, pin) > 0.4) continue;
+      const label = statusLabel(next, truck.timezone);
+      atLot.push({
+        id: truck.id,
+        name: truck.name,
+        slug: truck.slug,
+        primaryCuisine: truck.primaryCuisine,
+        secondaryCuisines: truck.secondaryCuisines,
+        coverTone: truck.coverTone,
+        dietaryTags: truck.dietaryTags,
+        priceBand: truck.priceBand,
+        serviceCity: truck.serviceCity,
+        timezone: truck.timezone,
+        lat: pin.lat,
+        lng: pin.lng,
+        distanceMiles: haversineMiles(origin, pin),
+        isOpenNow: label.open,
+        statusKind: label.kind,
+        statusLabel: label.text,
+        nextStop: next,
+        foundingTruck: truck.foundingTruck,
+      });
+    }
+    atLot.sort(sortItems);
+    return { market: { ...market, liveCount: atLot.filter((t) => t.isOpenNow).length }, trucks: atLot };
   });

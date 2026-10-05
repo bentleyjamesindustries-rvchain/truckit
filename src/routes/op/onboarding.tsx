@@ -5,14 +5,12 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { PLACES } from "@/lib/geo";
+import { PLACE_OPTS } from "@/lib/geo";
 import { CUISINES, CUISINE_LABEL, type Cuisine, type WindowKind } from "@/lib/types";
 import { upsertMyTruck, upsertStop } from "@/lib/server/operator";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/op/onboarding")({ component: Onboarding });
-
-const PLACE_OPTS = [PLACES.downtown, PLACES.officePark, PLACES.dinnerLot, PLACES.harbor];
 
 function Onboarding() {
   const { user, isPending } = useCurrentUserState();
@@ -20,10 +18,10 @@ function Onboarding() {
   const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("");
   const [cuisine, setCuisine] = useState<Cuisine>("bbq");
-  const [city, setCity] = useState("Westbrook");
+  const [city, setCity] = useState("Syracuse");
   const [bio, setBio] = useState("");
   const [windows, setWindows] = useState<WindowKind[]>(["lunch", "dinner"]);
-  const [place, setPlace] = useState(PLACES.downtown);
+  const [place, setPlace] = useState(PLACE_OPTS[0]!);
   const [start, setStart] = useState(defaultStart());
   const [end, setEnd] = useState(defaultEnd());
   const [busy, setBusy] = useState(false);
@@ -141,7 +139,10 @@ function Onboarding() {
                 <button
                   key={p.name}
                   type="button"
-                  onClick={() => setPlace(p)}
+                  onClick={() => {
+                    setPlace(p);
+                    setCity(p.cityName);
+                  }}
                   className={cn(
                     "rounded-[var(--radius-md)] px-3 py-3 text-left text-sm ring-1",
                     place.name === p.name ? "bg-wash ring-primary text-primary" : "bg-surface ring-border",

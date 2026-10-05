@@ -2,45 +2,54 @@ import { MapPin, Navigation } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { useAreaStore } from "@/lib/area-store";
-import { formatMiles } from "@/lib/geo";
+import {
+  GEO_STATES,
+  citiesForCounty,
+  cityById,
+  countiesForState,
+  formatMiles,
+} from "@/lib/geo";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
 
 export function AreaBar() {
   const area = useAreaStore((s) => s.area);
-  const applyQuery = useAreaStore((s) => s.applyQuery);
-  const setArea = useAreaStore((s) => s.setArea);
+  const setCityId = useAreaStore((s) => s.setCityId);
+  const locate = useAreaStore((s) => s.locate);
   const [open, setOpen] = useState(false);
-  const [q, setQ] = useState(area.query);
+  const [stateCode, setStateCode] = useState(area.stateCode || "NY");
+  const [countyId, setCountyId] = useState(area.countyId || "ny-onondaga");
+
+  const counties = countiesForState(stateCode);
+  const cities = citiesForCounty(countyId);
 
   function submit(e: FormEvent) {
     e.preventDefault();
-    const res = applyQuery(q);
-    if (!res.ok) {
-      toast("Unknown area. Try Westbrook, Downtown, Office park, or a nearby city.");
-      return;
+    setOpen(false);
+  }
+
+  function pickCity(id: string) {
+    setCityId(id);
+    const city = cityById(id);
+    if (city) {
+      setStateCode(city.stateCode);
+      setCountyId(city.countyId);
     }
     setOpen(false);
   }
 
-  function locate() {
+  function locateMe() {
     if (!navigator.geolocation) {
       toast("Location isn’t available here.");
       return;
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setArea({
-          query: "Near me",
-          label: "Near me",
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          radiusMiles: area.radiusMiles,
-        });
-        setQ("Near me");
+        const next = locate(pos.coords.latitude, pos.coords.longitude);
+        setStateCode(next.stateCode);
+        setCountyId(next.countyId);
         setOpen(false);
       },
-      () => toast("Couldn’t read location. Enter an area instead."),
+      () => toast("Couldn’t read location. Pick a city instead."),
       { enableHighAccuracy: true, timeout: 8000 },
     );
   }
@@ -58,21 +67,73 @@ export function AreaBar() {
       </button>
       {open ? (
         <form onSubmit={submit} className="mt-3 flex flex-col gap-2">
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Zip, neighborhood, or city"
-          />
+          <div className="grid grid-cols-3 gap-2">
+            <label className="block text-[11px] font-medium uppercase tracking-[0.12em] text-muted">
+              State
+              <select
+                value={stateCode}
+                onChange={(e) => {
+                  const code = e.target.value;
+                  const nextCounties = countiesForState(code);
+                  const nextCounty = nextCounties[0]?.id ?? "";
+                  const nextCity = citiesForCounty(nextCounty)[0];
+                  setStateCode(code);
+                  setCountyId(nextCounty);
+                  if (nextCity) setCityId(nextCity.id);
+                }}
+                className="mt-1 h-11 w-full rounded-[var(--radius-md)] border border-border bg-surface px-2 text-sm text-fg"
+              >
+                {GEO_STATES.map((s) => (
+                  <option key={s.code} value={s.code}>
+                    {s.code}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-[11px] font-medium uppercase tracking-[0.12em] text-muted">
+              County
+              <select
+                value={countyId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  const nextCity = citiesForCounty(id)[0];
+                  setCountyId(id);
+                  if (nextCity) setCityId(nextCity.id);
+                }}
+                className="mt-1 h-11 w-full rounded-[var(--radius-md)] border border-border bg-surface px-2 text-sm text-fg"
+              >
+                {counties.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-[11px] font-medium uppercase tracking-[0.12em] text-muted">
+              City
+              <select
+                value={area.cityId}
+                onChange={(e) => pickCity(e.target.value)}
+                className="mt-1 h-11 w-full rounded-[var(--radius-md)] border border-border bg-surface px-2 text-sm text-fg"
+              >
+                {cities.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           <div className="flex gap-2">
-            <Button type="submit" size="sm" className="flex-1">
+            <Button type="button" size="sm" className="flex-1" onClick={() => setOpen(false)}>
               Set area
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={locate}>
+            <Button type="button" variant="outline" size="sm" onClick={locateMe}>
               <Navigation className="size-4" />
               Locate
             </Button>
           </div>
-          <p className="text-xs text-muted">Try Downtown, Office park, Dinner lot, Westbrook.</p>
+          <p className="text-xs text-muted">City gates the search. Default is Syracuse, Onondaga, NY.</p>
         </form>
       ) : null}
     </div>

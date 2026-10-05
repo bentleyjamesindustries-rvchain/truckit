@@ -1,11 +1,9 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { PLACES } from "@/lib/geo";
+import { PLACE_OPTS } from "@/lib/geo";
 import { upsertStop } from "@/lib/server/operator";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
-
-const PLACE_OPTS = [PLACES.downtown, PLACES.officePark, PLACES.dinnerLot, PLACES.harbor];
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
@@ -31,7 +29,7 @@ export function StopForm({
 }) {
   const navigate = useNavigate();
   const preset =
-    PLACE_OPTS.find((p) => p.name === initial?.placeName) ?? PLACE_OPTS[0];
+    PLACE_OPTS.find((p) => p.name === initial?.placeName) ?? PLACE_OPTS[0]!;
   const [place, setPlace] = useState(preset);
   const [customName, setCustomName] = useState(initial?.placeName ?? preset.name);
   const [address, setAddress] = useState(initial?.address ?? preset.address);

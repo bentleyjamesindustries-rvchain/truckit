@@ -5,6 +5,8 @@ import { CUISINES, CUISINE_LABEL, type Cuisine } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 
+const RADII = [5, 8, 12, 20];
+
 function Chip({
   active,
   children,
@@ -31,6 +33,8 @@ function Chip({
 export function FilterBar() {
   const filters = useAreaStore((s) => s.filters);
   const setFilters = useAreaStore((s) => s.setFilters);
+  const radius = useAreaStore((s) => s.area.radiusMiles);
+  const setRadius = useAreaStore((s) => s.setRadius);
   const [more, setMore] = useState(false);
 
   function toggleCuisine(c: Cuisine) {
@@ -39,6 +43,8 @@ export function FilterBar() {
       cuisines: has ? filters.cuisines.filter((x) => x !== c) : [...filters.cuisines, c],
     });
   }
+
+  const moreActive = more || filters.dinner || filters.late || filters.cuisines.length > 0;
 
   return (
     <div className="border-b border-border bg-bg">
@@ -49,10 +55,7 @@ export function FilterBar() {
         <Chip active={filters.lunch} onClick={() => setFilters({ lunch: !filters.lunch })}>
           Lunch
         </Chip>
-        <Chip active={filters.dinner} onClick={() => setFilters({ dinner: !filters.dinner })}>
-          Dinner
-        </Chip>
-        <Chip active={more || filters.late || filters.cuisines.length > 0} onClick={() => setMore((v) => !v)}>
+        <Chip active={moreActive} onClick={() => setMore((v) => !v)}>
           <SlidersHorizontal className="mr-1 inline size-3.5" />
           More
         </Chip>
@@ -67,9 +70,24 @@ export function FilterBar() {
           </div>
           <div>
             <p className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted">Windows</p>
-            <Chip active={filters.late} onClick={() => setFilters({ late: !filters.late })}>
-              Late night
-            </Chip>
+            <div className="flex flex-wrap gap-2">
+              <Chip active={filters.dinner} onClick={() => setFilters({ dinner: !filters.dinner })}>
+                Dinner
+              </Chip>
+              <Chip active={filters.late} onClick={() => setFilters({ late: !filters.late })}>
+                Late night
+              </Chip>
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted">Radius</p>
+            <div className="flex flex-wrap gap-2">
+              {RADII.map((n) => (
+                <Chip key={n} active={radius === n} onClick={() => setRadius(n)}>
+                  {n} mi
+                </Chip>
+              ))}
+            </div>
           </div>
           <div>
             <p className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted">Cuisine</p>
@@ -86,7 +104,7 @@ export function FilterBar() {
             size="sm"
             className="px-0 text-muted"
             onClick={() => {
-              setFilters({ late: false, cuisines: [] });
+              setFilters({ late: false, dinner: false, cuisines: [] });
               setMore(false);
             }}
           >

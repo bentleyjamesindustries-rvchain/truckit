@@ -61,6 +61,9 @@ function TruckDetail() {
       </div>
       <div className="px-5 pt-6 lg:px-8">
         <h1 className="font-display text-3xl font-medium tracking-[-0.04em]">{truck.name}</h1>
+        {truck.foundingTruck ? (
+          <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">Founding Truck</p>
+        ) : null}
         <p className="mt-1 text-sm text-muted">
           {cuisines.map((c) => CUISINE_LABEL[c]).join(" · ")}
           {truck.priceBand ? ` · ${"$".repeat(Number(truck.priceBand))}` : ""}

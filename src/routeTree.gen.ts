@@ -15,6 +15,7 @@ import { Route as ListRouteImport } from './routes/list'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as LotsIdRouteImport } from './routes/lots/$id'
 import { Route as MeetupsIndexRouteImport } from './routes/meetups/index'
 import { Route as MeetupsIdRouteImport } from './routes/meetups/$id'
 import { Route as OpOnboardingRouteImport } from './routes/op/onboarding'
@@ -56,6 +57,11 @@ const MapRoute = MapRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LotsIdRoute = LotsIdRouteImport.update({
+  id: '/lots/$id',
+  path: '/lots/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MeetupsIndexRoute = MeetupsIndexRouteImport.update({
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
   '/signup': typeof SignupRoute
+  '/lots/$id': typeof LotsIdRoute
   '/meetups/$id': typeof MeetupsIdRoute
   '/op/onboarding': typeof OpOnboardingRoute
   '/op/schedule': typeof OpScheduleRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
   '/signup': typeof SignupRoute
+  '/lots/$id': typeof LotsIdRoute
   '/meetups/$id': typeof MeetupsIdRoute
   '/op/onboarding': typeof OpOnboardingRoute
   '/op/schedule': typeof OpScheduleRoute
@@ -167,6 +175,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
   '/signup': typeof SignupRoute
+  '/lots/$id': typeof LotsIdRoute
   '/meetups/$id': typeof MeetupsIdRoute
   '/op/onboarding': typeof OpOnboardingRoute
   '/op/schedule': typeof OpScheduleRoute
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/map'
     | '/signup'
+    | '/lots/$id'
     | '/meetups/$id'
     | '/op/onboarding'
     | '/op/schedule'
@@ -209,6 +219,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/map'
     | '/signup'
+    | '/lots/$id'
     | '/meetups/$id'
     | '/op/onboarding'
     | '/op/schedule'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/map'
     | '/signup'
+    | '/lots/$id'
     | '/meetups/$id'
     | '/op/onboarding'
     | '/op/schedule'
@@ -250,6 +262,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MapRoute: typeof MapRoute
   SignupRoute: typeof SignupRoute
+  LotsIdRoute: typeof LotsIdRoute
   MeetupsIdRoute: typeof MeetupsIdRoute
   OpOnboardingRoute: typeof OpOnboardingRoute
   OpScheduleRoute: typeof OpScheduleRoute
@@ -306,6 +319,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lots/$id': {
+      id: '/lots/$id'
+      path: '/lots/$id'
+      fullPath: '/lots/$id'
+      preLoaderRoute: typeof LotsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/meetups/': {
@@ -402,6 +422,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MapRoute: MapRoute,
   SignupRoute: SignupRoute,
+  LotsIdRoute: LotsIdRoute,
   MeetupsIdRoute: MeetupsIdRoute,
   OpOnboardingRoute: OpOnboardingRoute,
   OpScheduleRoute: OpScheduleRoute,
